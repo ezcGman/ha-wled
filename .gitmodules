@@ -1,3 +1,0 @@
-[submodule "custom_components/wled/wled"]
-	path = custom_components/wled/wled
-	url = git@github.com:ezcGman/python-wled.git

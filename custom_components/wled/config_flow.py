@@ -2,7 +2,7 @@
 from typing import Any, Dict, Optional
 
 import voluptuous as vol
-from wled import WLED, WLEDConnectionError
+from .wled import WLED, WLEDConnectionError
 
 from homeassistant.config_entries import (
     CONN_CLASS_LOCAL_POLL,
@@ -73,6 +73,11 @@ class WLEDFlowHandler(ConfigFlow, domain=DOMAIN):
             user_input[CONF_HOST] = self.context.get(CONF_HOST)
             user_input[CONF_MAC] = self.context.get(CONF_MAC)
 
+        title = user_input[CONF_HOST]
+        if source == SOURCE_ZEROCONF:
+            # pylint: disable=no-member # https://github.com/PyCQA/pylint/issues/3167
+            title = self.context.get(CONF_NAME)
+
         if user_input.get(CONF_MAC) is None or not prepare:
             session = async_get_clientsession(self.hass)
             wled = WLED(user_input[CONF_HOST], session=session)
@@ -83,6 +88,7 @@ class WLEDFlowHandler(ConfigFlow, domain=DOMAIN):
                     return self.async_abort(reason="cannot_connect")
                 return self._show_setup_form({"base": "cannot_connect"})
             user_input[CONF_MAC] = device.info.mac_address
+            title = device.info.name
 
         # Check if already configured
         await self.async_set_unique_id(user_input[CONF_MAC])

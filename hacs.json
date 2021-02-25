@@ -1,0 +1,5 @@
+{
+  "name": "WLED",
+  "domains": "light",
+  "iot_class": ["Local Polling", "Local Push"]
+}

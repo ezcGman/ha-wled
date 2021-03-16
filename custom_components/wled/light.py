@@ -43,6 +43,7 @@ from .const import (
     DOMAIN,
     SERVICE_EFFECT,
     SERVICE_PRESET,
+    CONF_FORCE_MASTER_LIGHT
 )
 
 PARALLEL_UPDATES = 1
@@ -157,12 +158,13 @@ class WLEDSegmentLight(LightEntity, WLEDDeviceEntity):
         self, entry_id: str, coordinator: WLEDDataUpdateCoordinator, segment: int
     ):
         """Initialize WLED segment light."""
+
         self._rgbw = coordinator.data.info.leds.rgbw
         self._segment = segment
 
         # If this is the one and only segment, use a simpler name
         name = f"{coordinator.data.info.name} Segment {self._segment}"
-        if len(coordinator.data.state.segments) == 1:
+        if entry.options.get(CONF_FORCE_MASTER_LIGHT) is False and len(coordinator.data.state.segments) == 1:
             name = coordinator.data.info.name
 
         super().__init__(
@@ -404,6 +406,8 @@ def async_update_segments(
     """Update segments."""
     segment_ids = {light.segment_id for light in coordinator.data.state.segments}
     current_ids = set(current)
+    master_light = current[-1] if -1 in current else None
+    force_add_master_light = entry.options.get(CONF_FORCE_MASTER_LIGHT)
 
     # Discard master (if present)
     current_ids.discard(-1)
@@ -415,7 +419,7 @@ def async_update_segments(
         new_entities.append(current[segment_id])
 
     # More than 1 segment now? Add master controls
-    if len(current_ids) < 2 and len(segment_ids) > 1:
+    if (len(segment_ids) > 1 or force_add_master_light) and master_light is None:
         current[-1] = WLEDMasterLight(entry.entry_id, coordinator)
         new_entities.append(current[-1])
 
@@ -429,7 +433,8 @@ def async_update_segments(
         )
 
     # Remove master if there is only 1 segment left
-    if len(current_ids) > 1 and len(segment_ids) < 2:
+    # and if master light should not be forced
+    if len(segment_ids) < 2 and force_add_master_light is False and master_light is not None:
         coordinator.hass.async_create_task(
             async_remove_entity(-1, coordinator, current)
         )

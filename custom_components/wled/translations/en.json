@@ -20,5 +20,15 @@
                 "title": "Discovered WLED device"
             }
         }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "data": {
+                    "force_master_light": "Add a master light even if there is only one segment"
+                },
+                "description": "Default behavior is that the master light is only shown, if there are more than one segment. Force it to be always there is handy for instances that have presets with only one but also more than one segment."
+            }
+        }
     }
 }

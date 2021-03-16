@@ -8,12 +8,17 @@ from homeassistant.config_entries import (
     CONN_CLASS_LOCAL_POLL,
     SOURCE_ZEROCONF,
     ConfigFlow,
+    OptionsFlow
 )
 from homeassistant.const import CONF_HOST, CONF_MAC, CONF_NAME
+from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.typing import ConfigType
 
-from .const import DOMAIN  # pylint: disable=unused-import
+from .const import (
+    DOMAIN,  # pylint: disable=unused-import
+    CONF_FORCE_MASTER_LIGHT
+)
 
 
 class WLEDFlowHandler(ConfigFlow, domain=DOMAIN):
@@ -21,6 +26,12 @@ class WLEDFlowHandler(ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
     CONNECTION_CLASS = CONN_CLASS_LOCAL_POLL
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry):
+        """Return the options flow."""
+        return OptionsFlowHandler(config_entry)
 
     async def async_step_user(
         self, user_input: Optional[ConfigType] = None
@@ -115,4 +126,32 @@ class WLEDFlowHandler(ConfigFlow, domain=DOMAIN):
             step_id="zeroconf_confirm",
             description_placeholders={"name": name},
             errors=errors or {},
+        )
+
+
+class OptionsFlowHandler(OptionsFlow):
+    """Handle a option flow for Yeelight."""
+
+    def __init__(self, config_entry):
+        """Initialize the option flow."""
+        self._config_entry = config_entry
+
+    async def async_step_init(self, user_input=None):
+        """Handle the initial step."""
+        if user_input is not None:
+            options = {**self._config_entry.options}
+            options.update(user_input)
+            return self.async_create_entry(title="", data=options)
+
+        options = self._config_entry.options
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_FORCE_MASTER_LIGHT,
+                        default=options[CONF_FORCE_MASTER_LIGHT],
+                    ): bool,
+                }
+            ),
         )

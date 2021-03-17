@@ -10,6 +10,8 @@ from homeassistant.const import (
     DEVICE_CLASS_TIMESTAMP,
     PERCENTAGE,
     SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
+    TEMP_CELSIUS,
+    TEMP_FAHRENHEIT
 )
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.typing import HomeAssistantType
@@ -35,6 +37,7 @@ async def async_setup_entry(
         WLEDWifiChannelSensor(entry.entry_id, coordinator),
         WLEDWifiRSSISensor(entry.entry_id, coordinator),
         WLEDWifiSignalSensor(entry.entry_id, coordinator),
+        WLEDTemperatureSensor(entry.entry_id, coordinator),
     ]
 
     async_add_entities(sensors, True)
@@ -242,3 +245,33 @@ class WLEDWifiBSSIDSensor(WLEDSensor):
     def state(self) -> str:
         """Return the state of the sensor."""
         return self.coordinator.data.info.wifi.bssid
+
+
+class WLEDTemperatureSensor(WLEDSensor):
+    """Defines a WLED temperature sensor. Only available with the usermod "Temperature" enabled."""
+
+    def __init__(
+        self, entry_id: str, coordinator: WLEDDataUpdateCoordinator
+    ) -> None:
+        """Initialize WLED temperature sensor."""
+        unit_of_measurement = TEMP_CELSIUS
+        if coordinator.data.info.user_mods is not None and "Temperature" in coordinator.data.info.user_mods and len(coordinator.data.info.user_mods["Temperature"]) == 2:
+            unit_of_measurement = TEMP_FAHRENHEIT if coordinator.data.info.user_mods["Temperature"][1] == "°F" else TEMP_CELSIUS
+
+        super().__init__(
+            coordinator=coordinator,
+            enabled_default=False,
+            entry_id=entry_id,
+            icon="mdi:thermometer",
+            key="temperature",
+            name=f"{coordinator.data.info.name} Temperature",
+            unit_of_measurement=unit_of_measurement,
+        )
+
+    @property
+    def state(self) -> str:
+        """Return the state of the sensor."""
+        if self.coordinator.data.info.user_mods is not None and "Temperature" in self.coordinator.data.info.user_mods and len(self.coordinator.data.info.user_mods["Temperature"]) == 2:
+            return self.coordinator.data.info.user_mods["Temperature"][0]
+
+        return None

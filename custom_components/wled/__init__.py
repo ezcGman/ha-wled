@@ -4,7 +4,7 @@ from datetime import timedelta
 import logging
 from typing import Any, Dict
 
-from wled import WLED, Device as WLEDDevice, WLEDConnectionError, WLEDError
+from .wled.wled import WLED, Device as WLEDDevice, WLEDConnectionError, WLEDError
 
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN

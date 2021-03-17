@@ -75,7 +75,6 @@ class WLEDFlowHandler(ConfigFlow, domain=DOMAIN):
 
         title = user_input[CONF_HOST]
         if source == SOURCE_ZEROCONF:
-            # pylint: disable=no-member # https://github.com/PyCQA/pylint/issues/3167
             title = self.context.get(CONF_NAME)
 
         if user_input.get(CONF_MAC) is None or not prepare:
@@ -93,10 +92,6 @@ class WLEDFlowHandler(ConfigFlow, domain=DOMAIN):
         # Check if already configured
         await self.async_set_unique_id(user_input[CONF_MAC])
         self._abort_if_unique_id_configured(updates={CONF_HOST: user_input[CONF_HOST]})
-
-        title = user_input[CONF_HOST]
-        if source == SOURCE_ZEROCONF:
-            title = self.context.get(CONF_NAME)
 
         if prepare:
             return await self.async_step_zeroconf_confirm()

@@ -27,6 +27,8 @@ from .const import (
     ATTR_MODEL,
     ATTR_SOFTWARE_VERSION,
     DOMAIN,
+    CONF_FORCE_MASTER_LIGHT,
+    DEFAULT_FORCE_MASTER_LIGHT
 )
 
 SCAN_INTERVAL = timedelta(seconds=5)
@@ -57,6 +59,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if entry.unique_id is None:
         hass.config_entries.async_update_entry(
             entry, unique_id=coordinator.data.info.mac_address
+        )
+
+    # Initialize options with default values for other entries
+    if not entry.options:
+        hass.config_entries.async_update_entry(
+            entry,
+            options={
+                CONF_FORCE_MASTER_LIGHT: entry.data.get(
+                    CONF_FORCE_MASTER_LIGHT, DEFAULT_FORCE_MASTER_LIGHT
+                ),
+            },
         )
 
     # Set up all platforms for this device/entry.

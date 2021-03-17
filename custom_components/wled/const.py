@@ -30,3 +30,6 @@ CURRENT_MA = "mA"
 # Services
 SERVICE_EFFECT = "effect"
 SERVICE_PRESET = "preset"
+
+CONF_FORCE_MASTER_LIGHT="force_master_light"
+DEFAULT_FORCE_MASTER_LIGHT = False

@@ -2,18 +2,23 @@
 from typing import Any, Dict, Optional
 
 import voluptuous as vol
-from wled import WLED, WLEDConnectionError
+from .wled import WLED, WLEDConnectionError
 
 from homeassistant.config_entries import (
     CONN_CLASS_LOCAL_POLL,
     SOURCE_ZEROCONF,
     ConfigFlow,
+    OptionsFlow
 )
 from homeassistant.const import CONF_HOST, CONF_MAC, CONF_NAME
+from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.typing import ConfigType
 
-from .const import DOMAIN  # pylint: disable=unused-import
+from .const import (
+    DOMAIN,  # pylint: disable=unused-import
+    CONF_FORCE_MASTER_LIGHT
+)
 
 
 class WLEDFlowHandler(ConfigFlow, domain=DOMAIN):
@@ -21,6 +26,12 @@ class WLEDFlowHandler(ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
     CONNECTION_CLASS = CONN_CLASS_LOCAL_POLL
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry):
+        """Return the options flow."""
+        return OptionsFlowHandler(config_entry)
 
     async def async_step_user(
         self, user_input: Optional[ConfigType] = None
@@ -73,6 +84,10 @@ class WLEDFlowHandler(ConfigFlow, domain=DOMAIN):
             user_input[CONF_HOST] = self.context.get(CONF_HOST)
             user_input[CONF_MAC] = self.context.get(CONF_MAC)
 
+        title = user_input[CONF_HOST]
+        if source == SOURCE_ZEROCONF:
+            title = self.context.get(CONF_NAME)
+
         if user_input.get(CONF_MAC) is None or not prepare:
             session = async_get_clientsession(self.hass)
             wled = WLED(user_input[CONF_HOST], session=session)
@@ -83,14 +98,11 @@ class WLEDFlowHandler(ConfigFlow, domain=DOMAIN):
                     return self.async_abort(reason="cannot_connect")
                 return self._show_setup_form({"base": "cannot_connect"})
             user_input[CONF_MAC] = device.info.mac_address
+            title = device.info.name
 
         # Check if already configured
         await self.async_set_unique_id(user_input[CONF_MAC])
         self._abort_if_unique_id_configured(updates={CONF_HOST: user_input[CONF_HOST]})
-
-        title = user_input[CONF_HOST]
-        if source == SOURCE_ZEROCONF:
-            title = self.context.get(CONF_NAME)
 
         if prepare:
             return await self.async_step_zeroconf_confirm()
@@ -115,4 +127,32 @@ class WLEDFlowHandler(ConfigFlow, domain=DOMAIN):
             step_id="zeroconf_confirm",
             description_placeholders={"name": name},
             errors=errors or {},
+        )
+
+
+class OptionsFlowHandler(OptionsFlow):
+    """Handle a option flow for Yeelight."""
+
+    def __init__(self, config_entry):
+        """Initialize the option flow."""
+        self._config_entry = config_entry
+
+    async def async_step_init(self, user_input=None):
+        """Handle the initial step."""
+        if user_input is not None:
+            options = {**self._config_entry.options}
+            options.update(user_input)
+            return self.async_create_entry(title="", data=options)
+
+        options = self._config_entry.options
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_FORCE_MASTER_LIGHT,
+                        default=options[CONF_FORCE_MASTER_LIGHT],
+                    ): bool,
+                }
+            ),
         )

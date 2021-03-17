@@ -158,6 +158,7 @@ class WLEDSegmentLight(LightEntity, WLEDDeviceEntity):
         self, entry_id: str, coordinator: WLEDDataUpdateCoordinator, segment: int
     ):
         """Initialize WLED segment light."""
+        entry = coordinator.hass.config_entries.async_get_entry(entry_id)
 
         self._rgbw = coordinator.data.info.leds.rgbw
         self._segment = segment
